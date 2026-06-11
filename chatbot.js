@@ -2,7 +2,11 @@ const chatMessagesEl = document.getElementById("chat-messages");
 const chatInputEl = document.getElementById("chat-input");
 const chatRecommendBtn = document.getElementById("chat-recommend-btn");
 
+const MIN_REQUEST_INTERVAL_MS = 60000;
+const COOLDOWN_KEY = "lotto_ai_cooldown_until";
+
 let isChatLoading = false;
+let cooldownTimer = null;
 
 function scrollChatToBottom() {
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
@@ -20,8 +24,54 @@ function addChatMessage(role, html, extraClass = "") {
 function addWelcomeMessage() {
   addChatMessage(
     "bot",
-    `<p>안녕하세요! 생년월일을 입력한 뒤 <strong>운세 기반 번호 추천</strong>을 누르면, 오늘의 운세와 사주팔자를 바탕으로 로또 번호와 추천 이유를 알려드립니다.</p>`
+    `<p>안녕하세요! 생년월일을 입력한 뒤 <strong>운세 기반 번호 추천</strong>을 누르면, 오늘의 운세와 사주팔자를 바탕으로 로또 번호와 추천 이유를 알려드립니다.</p>
+     <p class="chat-note">※ Gemini 무료 API는 분당 약 20회 제한이 있습니다. 연속 클릭 시 잠시 기다려 주세요.</p>`
   );
+}
+
+function getCooldownRemainingMs() {
+  const until = Number(sessionStorage.getItem(COOLDOWN_KEY) || 0);
+  return Math.max(0, until - Date.now());
+}
+
+function setCooldown(ms) {
+  sessionStorage.setItem(COOLDOWN_KEY, String(Date.now() + ms));
+  updateCooldownUI();
+}
+
+function updateCooldownUI() {
+  const remaining = getCooldownRemainingMs();
+
+  if (cooldownTimer) {
+    clearInterval(cooldownTimer);
+    cooldownTimer = null;
+  }
+
+  if (remaining <= 0) {
+    if (!isChatLoading) {
+      chatRecommendBtn.disabled = false;
+      chatRecommendBtn.textContent = "운세 기반 번호 추천";
+    }
+    return;
+  }
+
+  chatRecommendBtn.disabled = true;
+  const seconds = Math.ceil(remaining / 1000);
+  chatRecommendBtn.textContent = `${seconds}초 후 다시 시도`;
+
+  cooldownTimer = setInterval(() => {
+    const left = getCooldownRemainingMs();
+    if (left <= 0) {
+      clearInterval(cooldownTimer);
+      cooldownTimer = null;
+      if (!isChatLoading) {
+        chatRecommendBtn.disabled = false;
+        chatRecommendBtn.textContent = "운세 기반 번호 추천";
+      }
+      return;
+    }
+    chatRecommendBtn.textContent = `${Math.ceil(left / 1000)}초 후 다시 시도`;
+  }, 1000);
 }
 
 function renderRecommendationBalls(numbers, bonus) {
@@ -57,6 +107,17 @@ function showRecommendedNumbers(numbers, bonus) {
 async function requestRecommendation() {
   if (isChatLoading) return;
 
+  const cooldownLeft = getCooldownRemainingMs();
+  if (cooldownLeft > 0) {
+    addChatMessage(
+      "bot",
+      `<p>잠시만 기다려 주세요. 약 ${Math.ceil(cooldownLeft / 1000)}초 후에 다시 요청할 수 있습니다.</p>`,
+      "error"
+    );
+    updateCooldownUI();
+    return;
+  }
+
   const birthdate = typeof updateBirthdateState === "function" ? updateBirthdateState() : null;
   if (!birthdate) {
     addChatMessage("bot", "<p>먼저 생년월일을 올바르게 입력해 주세요.</p>", "error");
@@ -90,9 +151,18 @@ async function requestRecommendation() {
     loadingEl.remove();
 
     if (!res.ok) {
+      if (data.code === "RATE_LIMIT" && data.retryAfterSeconds) {
+        const waitMs = data.retryAfterSeconds * 1000;
+        setCooldown(Math.max(waitMs, MIN_REQUEST_INTERVAL_MS));
+        addChatMessage("bot", `<p>${escapeHtml(data.error)}</p>`, "error");
+        return;
+      }
+
       addChatMessage("bot", `<p>${escapeHtml(data.error || "추천 요청에 실패했습니다.")}</p>`, "error");
       return;
     }
+
+    setCooldown(MIN_REQUEST_INTERVAL_MS);
 
     const ballsHtml = renderRecommendationBalls(data.numbers, data.bonus);
     addChatMessage(
@@ -127,8 +197,7 @@ async function requestRecommendation() {
     );
   } finally {
     isChatLoading = false;
-    chatRecommendBtn.disabled = false;
-    chatRecommendBtn.textContent = "운세 기반 번호 추천";
+    updateCooldownUI();
   }
 }
 
@@ -150,3 +219,4 @@ chatInputEl.addEventListener("keydown", (e) => {
 });
 
 addWelcomeMessage();
+updateCooldownUI();

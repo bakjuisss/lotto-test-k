@@ -60,6 +60,32 @@ function validateNumbers(numbers, bonus) {
   return { numbers: sorted, bonus };
 }
 
+function parseGeminiError(status, geminiData) {
+  const message = geminiData?.error?.message || "Gemini API 호출에 실패했습니다.";
+  const isRateLimit =
+    status === 429 ||
+    /quota exceeded|rate limit|resource_exhausted/i.test(message);
+
+  if (isRateLimit) {
+    const match = message.match(/retry in ([\d.]+)s/i);
+    const retryAfterSeconds = match ? Math.ceil(parseFloat(match[1])) : 60;
+
+    return {
+      status: 429,
+      body: {
+        error: `AI 무료 사용 한도(분당 20회)에 도달했습니다. 약 ${retryAfterSeconds}초 후에 다시 시도해 주세요.`,
+        code: "RATE_LIMIT",
+        retryAfterSeconds,
+      },
+    };
+  }
+
+  return {
+    status: status >= 400 && status < 600 ? status : 502,
+    body: { error: message, code: "API_ERROR" },
+  };
+}
+
 function parseGeminiResponse(text) {
   const cleaned = text.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
   const start = cleaned.indexOf("{");
@@ -137,8 +163,8 @@ module.exports = async function handler(req, res) {
     const geminiData = await geminiRes.json();
 
     if (!geminiRes.ok) {
-      const detail = geminiData?.error?.message || "Gemini API 호출에 실패했습니다.";
-      return res.status(geminiRes.status).json({ error: detail });
+      const parsedError = parseGeminiError(geminiRes.status, geminiData);
+      return res.status(parsedError.status).json(parsedError.body);
     }
 
     const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;

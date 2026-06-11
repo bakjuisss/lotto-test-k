@@ -508,6 +508,12 @@ body {
   margin-top: 0;
 }
 
+.chat-message .chat-note {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 .chat-balls {
   display: flex;
   flex-wrap: wrap;
