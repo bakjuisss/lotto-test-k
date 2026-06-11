@@ -18,6 +18,7 @@ const setCountEl = document.getElementById("set-count");
 const includeBonusEl = document.getElementById("include-bonus");
 const historySection = document.getElementById("history-section");
 const historyList = document.getElementById("history-list");
+const historyEmptyEl = document.getElementById("history-empty");
 const clearHistoryBtn = document.getElementById("clear-history");
 
 let isDrawing = false;
@@ -286,9 +287,13 @@ async function machineDraw(numbers, bonus, birthdate) {
   drawStatusEl.textContent = "추첨이 완료되었습니다!";
 }
 
-function addHistoryEntry(numbers, bonus, birthdate) {
-  historySection.hidden = false;
+function updateHistoryEmptyState() {
+  const hasItems = historyList.children.length > 0;
+  if (historyEmptyEl) historyEmptyEl.hidden = hasItems;
+  if (clearHistoryBtn) clearHistoryBtn.hidden = !hasItems;
+}
 
+function addHistoryEntry(numbers, bonus, birthdate) {
   const li = document.createElement("li");
   li.className = "history-item";
 
@@ -337,6 +342,11 @@ function addHistoryEntry(numbers, bonus, birthdate) {
   li.appendChild(ballsWrap);
   li.appendChild(right);
   historyList.prepend(li);
+  updateHistoryEmptyState();
+
+  if (typeof window.switchTab === "function") {
+    window.switchTab("history");
+  }
 }
 
 async function drawOnce(birthdate, showAnimation = true) {
@@ -411,12 +421,13 @@ birthdateEl.addEventListener("blur", () => {
 
 clearHistoryBtn.addEventListener("click", () => {
   historyList.innerHTML = "";
-  historySection.hidden = true;
+  updateHistoryEmptyState();
 });
 
 initDrumBalls();
 initResultSlots();
 updateBirthdateState();
+updateHistoryEmptyState();
 
 // --- 역대 1등 당첨번호 ---
 const winnersListEl = document.getElementById("winners-list");
