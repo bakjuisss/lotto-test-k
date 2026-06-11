@@ -70,6 +70,28 @@
         </button>
       </section>
 
+      <section class="chatbot" id="chatbot">
+        <div class="chatbot-header">
+          <h2>🔮 AI 로또 상담</h2>
+          <p>생년월일·오늘 운세·사주팔자를 바탕으로 번호를 추천합니다</p>
+        </div>
+
+        <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+
+        <div class="chat-input-area">
+          <input
+            type="text"
+            id="chat-input"
+            class="input"
+            placeholder="추가로 궁금한 점을 입력하세요 (선택)"
+            maxlength="500"
+          >
+          <button type="button" class="btn-chat" id="chat-recommend-btn">
+            운세 기반 번호 추천
+          </button>
+        </div>
+      </section>
+
       <section class="history" id="history-section" hidden>
         <h2>추첨 기록</h2>
         <ul class="history-list" id="history-list"></ul>
@@ -110,5 +132,6 @@
 
   <script src="lotto-data.js"></script>
   <script src="app.js"></script>
+  <script src="chatbot.js"></script>
 </body>
 </html>
