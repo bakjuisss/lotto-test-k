@@ -124,8 +124,8 @@ function requestRecommendation() {
     return;
   }
 
-  if (typeof window.requireSignup === "function") {
-    window.requireSignup(runRecommendation);
+  if (typeof window.requireAuth === "function") {
+    window.requireAuth(runRecommendation);
     return;
   }
 

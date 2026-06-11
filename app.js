@@ -408,8 +408,8 @@ function handleDraw() {
   const birthdate = updateBirthdateState();
   if (!birthdate) return;
 
-  if (typeof window.requireSignup === "function") {
-    window.requireSignup(performDraw);
+  if (typeof window.requireAuth === "function") {
+    window.requireAuth(performDraw);
     return;
   }
 
