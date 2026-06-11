@@ -1,12 +1,11 @@
 const MIN = 1;
 const MAX = 45;
 const COUNT = 6;
-const KICK_ANIM_MS = 560;
-const DRUM_BALL_COUNT = 26;
+const EJECT_SELECT_MS = 320;
+const EJECT_EXIT_MS = 480;
+const EJECT_SLOT_MS = 520;
 
 const drumEl = document.getElementById("drum");
-const puncherEl = document.getElementById("puncher");
-const puncherImpactEl = document.getElementById("puncher-impact");
 const drumInnerEl = document.getElementById("drum-inner");
 const flyingBallEl = document.getElementById("flying-ball");
 const resultSlotsEl = document.getElementById("result-slots");
@@ -180,56 +179,35 @@ function updateBirthdateState() {
   return result.birthdate;
 }
 
-function randomDrumNumber() {
-  return MIN + Math.floor(Math.random() * (MAX - MIN + 1));
-}
-
-function placeBallInDrum(ball) {
-  const angle = Math.random() * Math.PI * 2;
-  const radius = 18 + Math.random() * 32;
-  const x = 50 + Math.cos(angle) * radius * 0.38;
-  const y = 50 + Math.sin(angle) * radius * 0.38;
-  const tx = (2 + Math.random() * 7).toFixed(1);
-  const ty = (2 + Math.random() * 7).toFixed(1);
-  const rot = (4 + Math.random() * 14).toFixed(1);
-  const depth = (0.82 + Math.random() * 0.28).toFixed(2);
+function placeBallInDrum(ball, index, total) {
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  const angle = index * golden;
+  const radius = 6 + (index / Math.max(total - 1, 1)) * 40;
+  const x = 50 + Math.cos(angle) * radius * 0.34;
+  const y = 50 + Math.sin(angle) * radius * 0.34;
+  const depth = (0.75 + (index % 5) * 0.05).toFixed(2);
 
   ball.style.left = `${x}%`;
   ball.style.top = `${y}%`;
-  ball.style.setProperty("--tx", `${tx}px`);
-  ball.style.setProperty("--ty", `${ty}px`);
-  ball.style.setProperty("--rot", `${rot}deg`);
   ball.style.setProperty("--depth", depth);
-  ball.style.setProperty("--dur", `${2.2 + Math.random() * 2.4}s`);
-  ball.style.setProperty("--delay", `${Math.random() * 2.5}s`);
+  ball.style.setProperty("--dur", `${2.8 + (index % 7) * 0.35}s`);
+  ball.style.setProperty("--delay", `${(index % 11) * 0.18}s`);
 }
 
 function initDrumBalls() {
   drumInnerEl.innerHTML = "";
-  const used = new Set();
+  const total = MAX - MIN + 1;
 
-  for (let i = 0; i < DRUM_BALL_COUNT; i++) {
-    let num = randomDrumNumber();
-    while (used.size < MAX && used.has(num)) {
-      num = randomDrumNumber();
-    }
-    used.add(num);
-
-    const ball = createBall(num, "drum-ball", "tiny");
-    placeBallInDrum(ball);
+  for (let num = MIN; num <= MAX; num++) {
+    const ball = createBall(num, "drum-ball", "micro");
+    ball.dataset.num = String(num);
+    placeBallInDrum(ball, num - MIN, total);
     drumInnerEl.appendChild(ball);
   }
 }
 
-function setDrumTumble(active) {
-  drumInnerEl.classList.toggle("tumbling", active);
-  drumEl.classList.toggle("active-draw", active);
-}
-
-function scatterDrumBalls() {
-  drumInnerEl.querySelectorAll(".drum-ball").forEach((ball) => {
-    placeBallInDrum(ball);
-  });
+function getDrumBall(num) {
+  return drumInnerEl.querySelector(`.drum-ball[data-num="${num}"]`);
 }
 
 function initResultSlots() {
@@ -246,45 +224,28 @@ function initResultSlots() {
 
 function resetMachine() {
   initResultSlots();
+  initDrumBalls();
   bonusAreaEl.hidden = true;
   bonusSlotEl.innerHTML = "";
   flyingBallEl.hidden = true;
   flyingBallEl.className = "flying-ball";
-  drumEl.classList.remove("shaking", "spinning", "active-draw", "hit-impact");
-  drumInnerEl.classList.remove("tumbling");
-  puncherEl?.classList.remove("kicking");
-  puncherImpactEl?.classList.remove("show");
+  flyingBallEl.style.cssText = "";
+  drumEl.classList.remove("shaking", "active-draw", "releasing");
+  drumInnerEl.querySelectorAll(".drum-ball.selected, .drum-ball.ejected").forEach((ball) => {
+    ball.classList.remove("selected", "ejected");
+  });
 }
 
-async function playKickAnimation() {
-  if (!puncherEl) {
-    drumEl.classList.add("shaking");
-    setDrumTumble(true);
-    scatterDrumBalls();
-    await delay(KICK_ANIM_MS);
-    drumEl.classList.remove("shaking");
-    setDrumTumble(false);
-    return;
-  }
-
-  puncherEl.classList.remove("kicking");
-  puncherImpactEl?.classList.remove("show");
-  void puncherEl.offsetWidth;
-
-  setDrumTumble(true);
-  scatterDrumBalls();
-  puncherEl.classList.add("kicking");
-  drumEl.classList.add("hit-impact");
-
-  await delay(180);
-  puncherImpactEl?.classList.add("show");
-
-  await delay(KICK_ANIM_MS - 180);
-
-  puncherEl.classList.remove("kicking");
-  drumEl.classList.remove("hit-impact", "shaking");
-  await delay(140);
-  setDrumTumble(false);
+function resetFlyingBallStyles() {
+  flyingBallEl.style.transition = "";
+  flyingBallEl.style.transform = "";
+  flyingBallEl.style.opacity = "";
+  flyingBallEl.style.filter = "";
+  flyingBallEl.style.width = "";
+  flyingBallEl.style.height = "";
+  flyingBallEl.style.fontSize = "";
+  flyingBallEl.style.left = "";
+  flyingBallEl.style.top = "";
 }
 
 function getRelativeCenter(el, container) {
@@ -299,41 +260,69 @@ function getRelativeCenter(el, container) {
 async function ejectBall(num, targetSlot, size = "normal") {
   const stage = document.querySelector(".machine-stage");
   const chuteExit = document.querySelector(".chute-exit");
-
-  await playKickAnimation();
-
-  const start = getRelativeCenter(chuteExit, stage);
-  const end = getRelativeCenter(targetSlot, stage);
-  const ballSize = size === "bonus" ? 40 : 52;
+  const drumBall = getDrumBall(num);
   const spring = "cubic-bezier(0.32, 0.72, 0, 1)";
+  const innerSize = 16;
+  const midSize = size === "bonus" ? 34 : 38;
+  const finalSize = size === "bonus" ? 44 : 52;
 
+  drumEl.classList.add("releasing");
+
+  if (drumBall) {
+    drumBall.classList.add("selected");
+  }
+
+  await delay(EJECT_SELECT_MS);
+
+  const start = drumBall
+    ? getRelativeCenter(drumBall, stage)
+    : getRelativeCenter(drumInnerEl, stage);
+  const mid = getRelativeCenter(chuteExit, stage);
+  const end = getRelativeCenter(targetSlot, stage);
+
+  if (drumBall) {
+    drumBall.classList.remove("selected");
+    drumBall.classList.add("ejected");
+  }
+
+  resetFlyingBallStyles();
   flyingBallEl.textContent = num;
   flyingBallEl.className = `flying-ball ball ${size} ${getBallColor(num)}`;
   flyingBallEl.hidden = false;
-  flyingBallEl.style.width = `${ballSize}px`;
-  flyingBallEl.style.height = `${ballSize}px`;
-  flyingBallEl.style.fontSize = size === "bonus" ? "1rem" : "1.25rem";
-  flyingBallEl.style.left = `${start.x - ballSize / 2}px`;
-  flyingBallEl.style.top = `${start.y - ballSize / 2}px`;
-  flyingBallEl.style.transform = "scale(0.35) translateY(8px)";
-  flyingBallEl.style.opacity = "0";
-  flyingBallEl.style.filter = "blur(2px)";
+  flyingBallEl.style.width = `${innerSize}px`;
+  flyingBallEl.style.height = `${innerSize}px`;
+  flyingBallEl.style.fontSize = "0.5rem";
+  flyingBallEl.style.left = `${start.x - innerSize / 2}px`;
+  flyingBallEl.style.top = `${start.y - innerSize / 2}px`;
+  flyingBallEl.style.transform = "scale(1)";
+  flyingBallEl.style.opacity = "1";
 
-  await delay(40);
+  await delay(30);
 
   flyingBallEl.style.transition =
-    `left 0.62s ${spring}, top 0.62s ${spring}, transform 0.62s ${spring}, opacity 0.28s ease, filter 0.45s ease`;
-  flyingBallEl.style.transform = "scale(1) translateY(0)";
-  flyingBallEl.style.opacity = "1";
-  flyingBallEl.style.filter = "blur(0)";
-  flyingBallEl.style.left = `${end.x - ballSize / 2}px`;
-  flyingBallEl.style.top = `${end.y - ballSize / 2}px`;
+    `left ${EJECT_EXIT_MS}ms ${spring}, top ${EJECT_EXIT_MS}ms ${spring}, width ${EJECT_EXIT_MS}ms ${spring}, height ${EJECT_EXIT_MS}ms ${spring}, font-size ${EJECT_EXIT_MS}ms ${spring}`;
+  flyingBallEl.style.width = `${midSize}px`;
+  flyingBallEl.style.height = `${midSize}px`;
+  flyingBallEl.style.fontSize = size === "bonus" ? "0.85rem" : "0.95rem";
+  flyingBallEl.style.left = `${mid.x - midSize / 2}px`;
+  flyingBallEl.style.top = `${mid.y - midSize / 2}px`;
 
-  await delay(640);
+  await delay(EJECT_EXIT_MS);
 
+  flyingBallEl.style.transition =
+    `left ${EJECT_SLOT_MS}ms ${spring}, top ${EJECT_SLOT_MS}ms ${spring}, width ${EJECT_SLOT_MS}ms ${spring}, height ${EJECT_SLOT_MS}ms ${spring}, font-size ${EJECT_SLOT_MS}ms ${spring}, transform ${EJECT_SLOT_MS}ms ${spring}`;
+  flyingBallEl.style.width = `${finalSize}px`;
+  flyingBallEl.style.height = `${finalSize}px`;
+  flyingBallEl.style.fontSize = size === "bonus" ? "1rem" : "1.25rem";
+  flyingBallEl.style.left = `${end.x - finalSize / 2}px`;
+  flyingBallEl.style.top = `${end.y - finalSize / 2}px`;
+  flyingBallEl.style.transform = "scale(1.04)";
+
+  await delay(EJECT_SLOT_MS);
+
+  drumEl.classList.remove("releasing");
   flyingBallEl.hidden = true;
-  flyingBallEl.style.transition = "";
-  flyingBallEl.style.filter = "";
+  resetFlyingBallStyles();
   targetSlot.innerHTML = "";
   targetSlot.appendChild(createBall(num, "landed", size));
   targetSlot.classList.add("filled");
@@ -341,26 +330,23 @@ async function ejectBall(num, targetSlot, size = "normal") {
 
 async function machineDraw(numbers, bonus, birthdate) {
   resetMachine();
-  drawStatusEl.textContent = `${formatBirthdate(birthdate)}생 님, 추첨기를 때릴 준비 중...`;
+  drawStatusEl.textContent = `${formatBirthdate(birthdate)}생 님, 45개의 공이 준비되었습니다`;
   drumEl.classList.add("active-draw");
-  await playKickAnimation();
-  drawStatusEl.textContent = "공이 튀어나옵니다!";
-  await delay(200);
+  await delay(350);
 
   for (let i = 0; i < numbers.length; i++) {
-    drawStatusEl.textContent = `${i + 1}번째 공 — 찰싹! 때리는 중...`;
+    drawStatusEl.textContent = `${i + 1}번째 번호 — 추첨기 밖으로 나오는 중...`;
     await ejectBall(numbers[i], slotElements[i]);
-    if (i < numbers.length - 1) await delay(160);
+    if (i < numbers.length - 1) await delay(180);
   }
 
   if (bonus !== null) {
-    drawStatusEl.textContent = "보너스 공을 꺼내는 중...";
+    drawStatusEl.textContent = "보너스 번호가 추첨기 밖으로 나옵니다...";
     bonusAreaEl.hidden = false;
-    await delay(250);
+    await delay(220);
     await ejectBall(bonus, bonusSlotEl, "bonus");
   }
 
-  setDrumTumble(false);
   drumEl.classList.remove("active-draw");
   drawStatusEl.textContent = "추첨이 완료되었습니다!";
 }
