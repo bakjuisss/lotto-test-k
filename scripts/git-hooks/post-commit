@@ -1,0 +1,9 @@
+#!/bin/sh
+# 커밋 후 현재 브랜치를 origin에 자동 push
+
+branch=$(git rev-parse --abbrev-ref HEAD)
+
+if git remote get-url origin >/dev/null 2>&1; then
+  echo "Auto-pushing to origin/$branch ..."
+  git push origin "$branch"
+fi

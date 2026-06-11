@@ -82,38 +82,79 @@ function formatBirthdate(dateStr) {
   return `${y}년 ${parseInt(m, 10)}월 ${parseInt(d, 10)}일`;
 }
 
-function validateBirthdate() {
-  const value = birthdateEl.value;
+function parseBirthdateInput(raw) {
+  const value = String(raw).trim();
+  if (!value) return null;
 
-  if (!value) {
+  const digitsOnly = value.replace(/\D/g, "");
+
+  if (/^\d{8}$/.test(digitsOnly)) {
+    const y = digitsOnly.slice(0, 4);
+    const m = digitsOnly.slice(4, 6);
+    const d = digitsOnly.slice(6, 8);
+    return `${y}-${m}-${d}`;
+  }
+
+  const match = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (match) {
+    const y = match[1];
+    const m = match[2].padStart(2, "0");
+    const d = match[3].padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  return null;
+}
+
+function validateBirthdate() {
+  const raw = birthdateEl.value;
+
+  if (!raw.trim()) {
     return { valid: false, message: "생년월일을 입력해 주세요.", birthdate: null };
   }
 
-  const birth = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(birth.getTime())) {
-    return { valid: false, message: "올바른 날짜를 입력해 주세요.", birthdate: null };
+  const normalized = parseBirthdateInput(raw);
+  if (!normalized) {
+    return {
+      valid: false,
+      message: "19960504 또는 1996-05-04 형식으로 입력해 주세요.",
+      birthdate: null,
+    };
+  }
+
+  const [y, m, d] = normalized.split("-").map(Number);
+  const birth = new Date(y, m - 1, d);
+
+  if (
+    Number.isNaN(birth.getTime()) ||
+    birth.getFullYear() !== y ||
+    birth.getMonth() !== m - 1 ||
+    birth.getDate() !== d
+  ) {
+    return { valid: false, message: "존재하지 않는 날짜입니다.", birthdate: null };
   }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  birth.setHours(0, 0, 0, 0);
 
   if (birth > today) {
     return { valid: false, message: "오늘 이후 날짜는 입력할 수 없습니다.", birthdate: null };
   }
 
-  const minDate = new Date("1900-01-01T00:00:00");
+  const minDate = new Date(1900, 0, 1);
   if (birth < minDate) {
     return { valid: false, message: "1900년 1월 1일 이후 날짜만 입력할 수 있습니다.", birthdate: null };
   }
 
-  return { valid: true, message: "", birthdate: value };
+  return { valid: true, message: "", birthdate: normalized };
 }
 
 function updateBirthdateState() {
   const result = validateBirthdate();
 
-  if (!birthdateEl.value) {
-    birthdateHintEl.textContent = "추첨 전 생년월일을 입력해 주세요.";
+  if (!birthdateEl.value.trim()) {
+    birthdateHintEl.textContent = "8자리(19960504) 또는 하이픈 형식(1996-05-04)으로 입력해 주세요.";
     birthdateHintEl.classList.remove("valid");
     birthdateErrorEl.hidden = true;
     drawBtn.disabled = true;
@@ -354,10 +395,13 @@ async function handleDraw() {
 drawBtn.addEventListener("click", handleDraw);
 birthdateEl.addEventListener("input", updateBirthdateState);
 birthdateEl.addEventListener("change", updateBirthdateState);
-
-const today = new Date().toISOString().slice(0, 10);
-birthdateEl.max = today;
-birthdateEl.min = "1900-01-01";
+birthdateEl.addEventListener("blur", () => {
+  const result = validateBirthdate();
+  if (result.valid) {
+    birthdateEl.value = result.birthdate;
+    updateBirthdateState();
+  }
+});
 
 clearHistoryBtn.addEventListener("click", () => {
   historyList.innerHTML = "";

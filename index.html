@@ -45,8 +45,17 @@
       <section class="controls">
         <div class="birthdate-group">
           <label class="control-label" for="birthdate">생년월일</label>
-          <input type="date" id="birthdate" class="input input-date" required>
-          <p class="field-hint" id="birthdate-hint">추첨 전 생년월일을 입력해 주세요.</p>
+          <input
+            type="text"
+            id="birthdate"
+            class="input input-date"
+            inputmode="numeric"
+            placeholder="19960504 또는 1996-05-04"
+            maxlength="10"
+            autocomplete="bday"
+            required
+          >
+          <p class="field-hint" id="birthdate-hint">8자리(19960504) 또는 하이픈 형식(1996-05-04)으로 입력해 주세요.</p>
           <p class="field-error" id="birthdate-error" hidden></p>
         </div>
 

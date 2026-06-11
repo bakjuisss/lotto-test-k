@@ -324,7 +324,7 @@ body {
 
 .input-date {
   width: 100%;
-  color-scheme: dark;
+  letter-spacing: 0.02em;
 }
 
 .field-hint {
