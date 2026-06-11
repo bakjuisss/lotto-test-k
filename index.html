@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로또 번호 추첨기</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>🎱 로또 번호 추첨기</h1>
+      <p class="subtitle">추첨기에서 공을 하나씩 꺼내 번호를 뽑습니다</p>
+    </header>
+
+    <main class="main">
+      <section class="draw-area" aria-live="polite">
+        <div class="lotto-machine">
+          <div class="machine-stage">
+            <div class="drum" id="drum">
+              <div class="drum-highlight"></div>
+              <div class="drum-inner" id="drum-inner"></div>
+            </div>
+            <div class="chute">
+              <div class="chute-pipe"></div>
+              <div class="chute-exit"></div>
+            </div>
+            <div class="flying-ball" id="flying-ball" hidden></div>
+          </div>
+
+          <div class="result-rack">
+            <p class="rack-label">당첨 번호</p>
+            <div class="result-slots" id="result-slots"></div>
+          </div>
+
+          <div class="bonus-area" id="bonus-area" hidden>
+            <p class="rack-label">보너스 번호</p>
+            <div class="bonus-slot" id="bonus-slot"></div>
+          </div>
+        </div>
+
+        <p class="draw-status" id="draw-status">추첨기가 준비되었습니다</p>
+      </section>
+
+      <section class="controls">
+        <div class="control-row">
+          <label class="control-label" for="set-count">추첨 세트</label>
+          <select id="set-count" class="select">
+            <option value="1" selected>1세트</option>
+            <option value="3">3세트</option>
+            <option value="5">5세트</option>
+            <option value="10">10세트</option>
+          </select>
+        </div>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="include-bonus">
+          보너스 번호 포함
+        </label>
+
+        <button type="button" class="btn-primary" id="draw-btn">
+          번호 추첨하기
+        </button>
+      </section>
+
+      <section class="history" id="history-section" hidden>
+        <h2>추첨 기록</h2>
+        <ul class="history-list" id="history-list"></ul>
+        <button type="button" class="btn-secondary" id="clear-history">기록 지우기</button>
+      </section>
+
+      <section class="winners">
+        <div class="winners-header">
+          <h2>역대 1등 당첨번호</h2>
+          <span class="winners-count" id="winners-count"></span>
+        </div>
+
+        <div class="winners-filters">
+          <div class="filter-group">
+            <label class="control-label" for="draw-search">회차 검색</label>
+            <input type="number" id="draw-search" class="input" min="1" placeholder="예: 1227">
+          </div>
+          <div class="filter-group">
+            <label class="control-label" for="number-filter">번호 포함</label>
+            <input type="number" id="number-filter" class="input" min="1" max="45" placeholder="1~45">
+          </div>
+        </div>
+
+        <ul class="winners-list" id="winners-list"></ul>
+
+        <div class="pagination" id="pagination">
+          <button type="button" class="btn-page" id="prev-page" disabled>이전</button>
+          <span class="page-info" id="page-info"></span>
+          <button type="button" class="btn-page" id="next-page">다음</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>※ 본 추첨기는 오락용이며, 당첨을 보장하지 않습니다.</p>
+    </footer>
+  </div>
+
+  <script src="lotto-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
