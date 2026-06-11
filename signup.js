@@ -89,24 +89,130 @@ function setSubmitting(isSubmitting) {
   signupSubmitBtn.textContent = isSubmitting ? "저장 중..." : "무료 가입하기";
 }
 
-async function saveSignupToSupabase(signupData) {
-  const res = await fetch("/api/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: signupData.name,
-      phone: signupData.phone,
-      email: signupData.email,
-    }),
-  });
+function getSupabaseClientConfig() {
+  const config = window.SUPABASE_CONFIG || {};
+  const url = String(config.url || "").trim().replace(/\/$/, "");
+  const anonKey = String(config.anonKey || "").trim();
 
-  const data = await res.json().catch(() => ({}));
+  if (!url || !anonKey) return null;
+  if (/your-project-ref|your-anon-key/i.test(url + anonKey)) return null;
+  if (!url.startsWith("https://") || !url.includes(".supabase.co")) return null;
+
+  return { url, anonKey };
+}
+
+function parseSupabaseError(status, data, rawText) {
+  const message = String(data?.message || data?.error || data?.hint || rawText || "");
+
+  if (/schema cache|does not exist|42P01|relation.*signups/i.test(message)) {
+    return "Supabase에 signups 테이블이 없습니다. supabase/schema.sql을 SQL Editor에서 실행해 주세요.";
+  }
+
+  if (/row-level security|RLS|42501|permission denied/i.test(message)) {
+    return "Supabase 권한 오류입니다. schema.sql의 insert 정책을 적용했는지 확인해 주세요.";
+  }
+
+  if (status === 409 || /duplicate|unique|23505/i.test(message)) {
+    return "이미 가입된 전화번호 또는 이메일입니다.";
+  }
+
+  if (/check constraint|23514/i.test(message)) {
+    return "입력 형식이 올바르지 않습니다. 이름·전화번호·이메일을 다시 확인해 주세요.";
+  }
+
+  if (/Invalid API key|JWT|401|403/i.test(message) || status === 401 || status === 403) {
+    return "Supabase API 키가 올바르지 않습니다. supabase-config.js의 anon key를 확인해 주세요.";
+  }
+
+  return message || "가입 정보 저장에 실패했습니다.";
+}
+
+async function parseResponseBody(res) {
+  const text = await res.text();
+  if (!text) return { data: null, text: "" };
+
+  try {
+    return { data: JSON.parse(text), text };
+  } catch {
+    return { data: null, text };
+  }
+}
+
+async function saveSignupViaSupabase(signupData, config) {
+  let res;
+
+  try {
+    res = await fetch(`${config.url}/rest/v1/signups`, {
+      method: "POST",
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        name: signupData.name,
+        phone: signupData.phone,
+        email: signupData.email,
+      }),
+    });
+  } catch {
+    throw new Error(
+      "Supabase 서버에 연결할 수 없습니다. supabase-config.js의 URL을 확인해 주세요."
+    );
+  }
+
+  const { data, text } = await parseResponseBody(res);
 
   if (!res.ok) {
-    throw new Error(data.error || "가입 정보 저장에 실패했습니다.");
+    throw new Error(parseSupabaseError(res.status, data, text));
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+
+  return {
+    ok: true,
+    id: row?.id ?? null,
+    joinedAt: row?.created_at ?? new Date().toISOString(),
+  };
+}
+
+async function saveSignupViaApi(signupData) {
+  let res;
+
+  try {
+    res = await fetch("/api/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: signupData.name,
+        phone: signupData.phone,
+        email: signupData.email,
+      }),
+    });
+  } catch {
+    throw new Error(
+      "서버에 연결할 수 없습니다. GitHub Pages에서는 supabase-config.js 설정이 필요합니다."
+    );
+  }
+
+  const { data, text } = await parseResponseBody(res);
+
+  if (!res.ok) {
+    throw new Error(data?.error || parseSupabaseError(res.status, data, text));
   }
 
   return data;
+}
+
+async function saveSignupToSupabase(signupData) {
+  const config = getSupabaseClientConfig();
+
+  if (config) {
+    return saveSignupViaSupabase(signupData, config);
+  }
+
+  return saveSignupViaApi(signupData);
 }
 
 signupForm.addEventListener("submit", async (e) => {
@@ -128,6 +234,13 @@ signupForm.addEventListener("submit", async (e) => {
 
   if (!validateEmail(email)) {
     alert("올바른 이메일 주소를 입력해 주세요.");
+    return;
+  }
+
+  if (!getSupabaseClientConfig() && location.protocol === "file:") {
+    alert(
+      "Supabase 설정이 필요합니다.\n\n1. supabase-config.example.js를 supabase-config.js로 복사\n2. Supabase URL과 anon key 입력\n3. supabase/schema.sql을 Supabase SQL Editor에서 실행"
+    );
     return;
   }
 

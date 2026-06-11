@@ -13,10 +13,10 @@ create unique index if not exists signups_email_unique on public.signups (email)
 
 alter table public.signups enable row level security;
 
--- 서버 API(SERVICE_ROLE_KEY)는 RLS를 우회합니다.
--- anon 키만 사용할 경우 아래 정책을 활성화하세요.
+-- 브라우저(anon key) 또는 서버 API에서 insert 허용
+drop policy if exists "Allow anonymous insert" on public.signups;
 create policy "Allow anonymous insert"
   on public.signups
   for insert
-  to anon
+  to anon, authenticated
   with check (true);

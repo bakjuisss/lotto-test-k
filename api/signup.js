@@ -26,14 +26,20 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "POST 요청만 지원합니다." });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL?.trim().replace(/\/$/, "");
   const supabaseKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     return res.status(500).json({
       error:
-        "Supabase 환경변수가 설정되지 않았습니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY를 Vercel에 추가해 주세요.",
+        "Supabase 환경변수가 설정되지 않았습니다. SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY를 Vercel에 추가하거나 supabase-config.js를 설정해 주세요.",
+    });
+  }
+
+  if (!supabaseUrl.startsWith("https://") || !supabaseUrl.includes(".supabase.co")) {
+    return res.status(500).json({
+      error: "SUPABASE_URL 형식이 올바르지 않습니다. (예: https://xxxxx.supabase.co)",
     });
   }
 
@@ -85,10 +91,27 @@ module.exports = async function handler(req, res) {
     }
 
     if (!insertRes.ok) {
-      const message = responseData?.message || responseData?.error || responseText;
+      const message = String(
+        responseData?.message || responseData?.error || responseData?.hint || responseText
+      );
+
+      if (/schema cache|does not exist|42P01|relation.*signups/i.test(message)) {
+        return res.status(500).json({
+          error:
+            "Supabase에 signups 테이블이 없습니다. supabase/schema.sql을 SQL Editor에서 실행해 주세요.",
+        });
+      }
+
+      if (/row-level security|RLS|42501|permission denied/i.test(message)) {
+        return res.status(500).json({
+          error:
+            "Supabase 권한 오류입니다. schema.sql의 insert 정책을 적용했는지 확인해 주세요.",
+        });
+      }
+
       const isDuplicate =
         insertRes.status === 409 ||
-        /duplicate|unique|already exists/i.test(String(message));
+        /duplicate|unique|23505/i.test(message);
 
       if (isDuplicate) {
         return res.status(409).json({
