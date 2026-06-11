@@ -1,5 +1,6 @@
 const SIGNUP_KEY = "lotto_ai_signup_done";
 const SIGNUP_SKIP_KEY = "lotto_ai_signup_skipped";
+const SIGNUP_DATA_KEY = "lotto_ai_signup_data";
 
 const signupModal = document.getElementById("signup-modal");
 const signupForm = document.getElementById("signup-form");
@@ -7,23 +8,48 @@ const signupCloseBtn = document.getElementById("signup-close");
 const signupSkipBtn = document.getElementById("signup-skip");
 const signupSuccessEl = document.getElementById("signup-success");
 const signupSubmitBtn = signupForm.querySelector(".btn-signup");
+const signupDescEl = signupModal.querySelector(".modal-desc");
+const DEFAULT_SIGNUP_DESC = signupDescEl.innerHTML;
+
+let pendingAction = null;
+let isRequiredSignup = false;
+
+function getStoredSignupData() {
+  try {
+    return JSON.parse(localStorage.getItem(SIGNUP_DATA_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
 
 function isSignupCompleted() {
-  return localStorage.getItem(SIGNUP_KEY) === "true";
+  if (localStorage.getItem(SIGNUP_KEY) !== "true") return false;
+
+  const data = getStoredSignupData();
+  return !!(data && data.name && data.phone && data.email);
 }
 
-function shouldShowSignupModal() {
-  if (isSignupCompleted()) return false;
-  const skippedAt = Number(localStorage.getItem(SIGNUP_SKIP_KEY) || 0);
-  if (skippedAt && Date.now() - skippedAt < 24 * 60 * 60 * 1000) return false;
-  return true;
-}
+function openSignupModal(options = {}) {
+  const required = options.required === true;
+  isRequiredSignup = required;
 
-function openSignupModal() {
-  if (!shouldShowSignupModal()) return;
+  if (!required) {
+    const skippedAt = Number(localStorage.getItem(SIGNUP_SKIP_KEY) || 0);
+    if (skippedAt && Date.now() - skippedAt < 24 * 60 * 60 * 1000) return;
+  }
+
+  if (isSignupCompleted()) return;
 
   signupForm.hidden = false;
   signupSuccessEl.hidden = true;
+  signupSkipBtn.hidden = required;
+  if (required) {
+    signupDescEl.textContent =
+      "추첨·AI 추천을 이용하려면 이름, 전화번호, 이메일을 입력해 주세요.";
+  } else {
+    signupDescEl.innerHTML = DEFAULT_SIGNUP_DESC;
+  }
+
   signupModal.hidden = false;
   document.body.classList.add("modal-open");
   signupForm.querySelector("#signup-name").focus();
@@ -32,6 +58,21 @@ function openSignupModal() {
 function closeSignupModal() {
   signupModal.hidden = true;
   document.body.classList.remove("modal-open");
+  isRequiredSignup = false;
+}
+
+function cancelPendingSignup() {
+  pendingAction = null;
+}
+
+function requireSignup(action) {
+  if (isSignupCompleted()) {
+    action();
+    return;
+  }
+
+  pendingAction = action;
+  openSignupModal({ required: true });
 }
 
 function validatePhone(phone) {
@@ -107,8 +148,17 @@ signupForm.addEventListener("submit", async (e) => {
     }
 
     localStorage.setItem(SIGNUP_KEY, "true");
-    localStorage.setItem("lotto_ai_signup_data", JSON.stringify(signupData));
+    localStorage.setItem(SIGNUP_DATA_KEY, JSON.stringify(signupData));
     localStorage.removeItem(SIGNUP_SKIP_KEY);
+
+    const nextAction = pendingAction;
+    pendingAction = null;
+
+    if (nextAction) {
+      closeSignupModal();
+      nextAction();
+      return;
+    }
 
     signupForm.hidden = true;
     signupSuccessEl.hidden = false;
@@ -123,28 +173,32 @@ signupForm.addEventListener("submit", async (e) => {
   }
 });
 
-signupCloseBtn.addEventListener("click", () => {
-  localStorage.setItem(SIGNUP_SKIP_KEY, String(Date.now()));
-  closeSignupModal();
-});
+function handleSignupDismiss() {
+  if (isRequiredSignup) {
+    cancelPendingSignup();
+    closeSignupModal();
+    return;
+  }
 
-signupSkipBtn.addEventListener("click", () => {
   localStorage.setItem(SIGNUP_SKIP_KEY, String(Date.now()));
   closeSignupModal();
-});
+}
+
+signupCloseBtn.addEventListener("click", handleSignupDismiss);
+signupSkipBtn.addEventListener("click", handleSignupDismiss);
 
 signupModal.addEventListener("click", (e) => {
   if (e.target === signupModal) {
-    localStorage.setItem(SIGNUP_SKIP_KEY, String(Date.now()));
-    closeSignupModal();
+    handleSignupDismiss();
   }
 });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !signupModal.hidden) {
-    localStorage.setItem(SIGNUP_SKIP_KEY, String(Date.now()));
-    closeSignupModal();
+    handleSignupDismiss();
   }
 });
 
 window.showSignupModal = openSignupModal;
+window.requireSignup = requireSignup;
+window.isSignupCompleted = isSignupCompleted;

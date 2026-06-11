@@ -1,244 +1,487 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>로또 번호 추첨기</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="app">
-    <header class="header">
-      <h1>🎱 로또 번호 추첨기</h1>
-      <p class="subtitle">추첨기에서 공을 하나씩 꺼내 번호를 뽑습니다</p>
-    </header>
-
-    <div class="birthdate-bar">
-      <div class="birthdate-group">
-        <label class="control-label" for="birthdate">생년월일</label>
-        <input
-          type="text"
-          id="birthdate"
-          class="input input-date"
-          inputmode="numeric"
-          placeholder="19960504 또는 1996-05-04"
-          maxlength="10"
-          autocomplete="bday"
-          required
-        >
-        <p class="field-hint" id="birthdate-hint">8자리(19960504) 또는 하이픈 형식(1996-05-04)으로 입력해 주세요.</p>
-        <p class="field-error" id="birthdate-error" hidden></p>
-      </div>
-    </div>
-
-    <nav class="tab-nav" id="tab-nav" role="tablist" aria-label="기능 메뉴">
-      <button type="button" class="tab-btn active" role="tab" data-tab="draw" aria-selected="true">추첨</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="ai" aria-selected="false">AI 추천</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="history" aria-selected="false">기록</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="reviews" aria-selected="false">후기</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="winners" aria-selected="false">역대 당첨</button>
-    </nav>
-
-    <main class="main">
-      <div class="tab-panel active" id="tab-draw" role="tabpanel">
-        <section class="draw-area" aria-live="polite">
-          <div class="lotto-machine">
-            <div class="machine-stage">
-              <div class="drum" id="drum">
-                <div class="drum-highlight"></div>
-                <div class="drum-inner" id="drum-inner"></div>
-              </div>
-              <div class="chute">
-                <div class="chute-pipe"></div>
-                <div class="chute-exit"></div>
-              </div>
-              <div class="flying-ball" id="flying-ball" hidden></div>
-            </div>
-
-            <div class="result-rack">
-              <p class="rack-label">당첨 번호</p>
-              <div class="result-slots" id="result-slots"></div>
-            </div>
-
-            <div class="bonus-area" id="bonus-area" hidden>
-              <p class="rack-label">보너스 번호</p>
-              <div class="bonus-slot" id="bonus-slot"></div>
-            </div>
-          </div>
-
-          <p class="draw-status" id="draw-status">추첨기가 준비되었습니다</p>
-        </section>
-
-        <section class="controls">
-          <div class="control-row">
-            <label class="control-label" for="set-count">추첨 세트</label>
-            <select id="set-count" class="select">
-              <option value="1" selected>1세트</option>
-              <option value="3">3세트</option>
-              <option value="5">5세트</option>
-              <option value="10">10세트</option>
-            </select>
-          </div>
-
-          <label class="checkbox-label">
-            <input type="checkbox" id="include-bonus">
-            보너스 번호 포함
-          </label>
-
-          <button type="button" class="btn-primary" id="draw-btn" disabled>
-            번호 추첨하기
-          </button>
-        </section>
-      </div>
-
-      <div class="tab-panel" id="tab-ai" role="tabpanel" hidden>
-        <section class="chatbot" id="chatbot">
-          <div class="chatbot-header">
-            <h2>🔮 AI 로또 상담</h2>
-            <p>생년월일·오늘 운세·사주팔자를 바탕으로 번호를 추천합니다</p>
-          </div>
-
-          <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
-
-          <div class="chat-input-area">
-            <input
-              type="text"
-              id="chat-input"
-              class="input"
-              placeholder="추가로 궁금한 점을 입력하세요 (선택)"
-              maxlength="500"
-            >
-            <button type="button" class="btn-chat" id="chat-recommend-btn">
-              운세 기반 번호 추천
-            </button>
-          </div>
-        </section>
-      </div>
-
-      <div class="tab-panel" id="tab-history" role="tabpanel" hidden>
-        <section class="history" id="history-section">
-          <h2>추첨 기록</h2>
-          <p class="history-empty" id="history-empty">아직 추첨 기록이 없습니다.</p>
-          <ul class="history-list" id="history-list"></ul>
-          <button type="button" class="btn-secondary" id="clear-history" hidden>기록 지우기</button>
-        </section>
-      </div>
-
-      <div class="tab-panel" id="tab-reviews" role="tabpanel" hidden>
-        <section class="testimonials">
-          <h2>⭐ 당첨자 후기</h2>
-          <p class="testimonials-sub">AI 추천 번호로 행운을 잡은 분들의 이야기</p>
-          <ul class="testimonial-list">
-            <li class="testimonial-card">
-              <div class="testimonial-top">
-                <span class="testimonial-name">김민준</span>
-                <span class="testimonial-badge">1등 당첨</span>
-              </div>
-              <p class="testimonial-text">생년월일과 사주 기반 AI 추천 번호로 1218회 1등에 당첨됐어요! 추천 이유가 상세해서 믿고 구매했는데 정말 됐습니다.</p>
-              <span class="testimonial-meta">서울 · 2026년 4월</span>
-            </li>
-            <li class="testimonial-card">
-              <div class="testimonial-top">
-                <span class="testimonial-name">이서연</span>
-                <span class="testimonial-badge">1등 당첨</span>
-              </div>
-              <p class="testimonial-text">운세 기반 번호 추천을 써보고 반신반의했는데 3주 만에 1등 당첨! 번호마다 왜 골랐는지 설명해 줘서 더 신뢰가 갔어요.</p>
-              <span class="testimonial-meta">부산 · 2026년 3월</span>
-            </li>
-            <li class="testimonial-card">
-              <div class="testimonial-top">
-                <span class="testimonial-name">박지훈</span>
-                <span class="testimonial-badge">1등 당첨</span>
-              </div>
-              <p class="testimonial-text">매주 AI가 보내주는 맞춤 번호로 꾸준히 샀더니 드디어 1등! 사주팔자랑 오늘 운세를 반영한 게 확실히 다르더라고요.</p>
-              <span class="testimonial-meta">대구 · 2026년 2월</span>
-            </li>
-            <li class="testimonial-card">
-              <div class="testimonial-top">
-                <span class="testimonial-name">최유나</span>
-                <span class="testimonial-badge">1등 당첨</span>
-              </div>
-              <p class="testimonial-text">친구 추천으로 가입했는데 AI가 추천한 번호 그대로 1등 당첨됐습니다. 이제 우리 가족도 전부 이 서비스 쓰고 있어요!</p>
-              <span class="testimonial-meta">인천 · 2026년 1월</span>
-            </li>
-          </ul>
-        </section>
-      </div>
-
-      <div class="tab-panel" id="tab-winners" role="tabpanel" hidden>
-        <section class="winners">
-          <div class="winners-header">
-            <h2>역대 1등 당첨번호</h2>
-            <span class="winners-count" id="winners-count"></span>
-          </div>
-
-          <div class="winners-filters">
-            <div class="filter-group">
-              <label class="control-label" for="draw-search">회차 검색</label>
-              <input type="number" id="draw-search" class="input" min="1" placeholder="예: 1227">
-            </div>
-            <div class="filter-group">
-              <label class="control-label" for="number-filter">번호 포함</label>
-              <input type="number" id="number-filter" class="input" min="1" max="45" placeholder="1~45">
-            </div>
-          </div>
-
-          <ul class="winners-list" id="winners-list"></ul>
-
-          <div class="pagination" id="pagination">
-            <button type="button" class="btn-page" id="prev-page" disabled>이전</button>
-            <span class="page-info" id="page-info"></span>
-            <button type="button" class="btn-page" id="next-page">다음</button>
-          </div>
-        </section>
-      </div>
-    </main>
-
-    <footer class="footer">
-      <p>※ 본 추첨기는 오락용이며, 당첨을 보장하지 않습니다. 후기는 서비스 소개용 예시입니다.</p>
-    </footer>
-  </div>
-
-  <div class="modal-overlay" id="signup-modal" hidden>
-    <div class="modal" role="dialog" aria-labelledby="signup-title" aria-modal="true">
-      <button type="button" class="modal-close" id="signup-close" aria-label="닫기">×</button>
-      <div class="modal-icon">🎉</div>
-      <h2 class="modal-title" id="signup-title">AI 로또 번호 추천 서비스</h2>
-      <p class="modal-desc">
-        앞으로 <strong>AI가 생년월일·운세·사주</strong>를 분석해<br>
-        매주 맞춤 로또 번호를 추천해 드립니다.<br>
-        지금 무료로 가입해 보세요!
-      </p>
-
-      <form class="signup-form" id="signup-form">
-        <div class="signup-field">
-          <label class="control-label" for="signup-name">이름</label>
-          <input type="text" id="signup-name" class="input" placeholder="홍길동" required maxlength="20">
-        </div>
-        <div class="signup-field">
-          <label class="control-label" for="signup-phone">전화번호</label>
-          <input type="tel" id="signup-phone" class="input" placeholder="01012345678" required maxlength="13">
-        </div>
-        <div class="signup-field">
-          <label class="control-label" for="signup-email">이메일</label>
-          <input type="email" id="signup-email" class="input" placeholder="example@email.com" required maxlength="60">
-        </div>
-        <button type="submit" class="btn-primary btn-signup">무료 가입하기</button>
-      </form>
-
-      <div class="signup-success" id="signup-success" hidden>
-        <p></p>
-      </div>
-
-      <button type="button" class="modal-skip" id="signup-skip">나중에 하기</button>
-    </div>
-  </div>
-
-  <script src="lotto-data.js"></script>
-  <script src="tabs.js"></script>
-  <script src="app.js"></script>
-  <script src="signup.js"></script>
-  <script src="chatbot.js"></script>
-</body>
-</html>
-
+<!DOCTYPE html>
+
+<html lang="ko">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>로또 번호 추첨기</title>
+
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+  <div class="app">
+
+    <header class="header">
+
+      <h1>🎱 로또 번호 추첨기</h1>
+
+      <p class="subtitle">추첨기에서 공을 하나씩 꺼내 번호를 뽑습니다</p>
+
+    </header>
+
+
+
+    <div class="birthdate-bar">
+
+      <div class="birthdate-group">
+
+        <label class="control-label" for="birthdate">생년월일</label>
+
+        <input
+
+          type="text"
+
+          id="birthdate"
+
+          class="input input-date"
+
+          inputmode="numeric"
+
+          placeholder="19960504 또는 1996-05-04"
+
+          maxlength="10"
+
+          autocomplete="bday"
+
+          required
+
+        >
+
+        <p class="field-hint" id="birthdate-hint">8자리(19960504) 또는 하이픈 형식(1996-05-04)으로 입력해 주세요.</p>
+
+        <p class="field-error" id="birthdate-error" hidden></p>
+
+      </div>
+
+    </div>
+
+
+
+    <nav class="tab-nav" id="tab-nav" role="tablist" aria-label="기능 메뉴">
+
+      <button type="button" class="tab-btn active" role="tab" data-tab="draw" aria-selected="true">추첨</button>
+
+      <button type="button" class="tab-btn" role="tab" data-tab="ai" aria-selected="false">AI 추천</button>
+
+      <button type="button" class="tab-btn" role="tab" data-tab="history" aria-selected="false">기록</button>
+
+      <button type="button" class="tab-btn" role="tab" data-tab="reviews" aria-selected="false">후기</button>
+
+      <button type="button" class="tab-btn" role="tab" data-tab="winners" aria-selected="false">역대 당첨</button>
+
+    </nav>
+
+
+
+    <main class="main">
+
+      <div class="tab-panel active" id="tab-draw" role="tabpanel">
+
+        <section class="draw-area" aria-live="polite">
+
+          <div class="lotto-machine">
+
+            <div class="machine-stage">
+
+              <div class="drum" id="drum">
+
+                <div class="drum-highlight"></div>
+
+                <div class="drum-inner" id="drum-inner"></div>
+
+              </div>
+
+              <div class="chute">
+
+                <div class="chute-pipe"></div>
+
+                <div class="chute-exit"></div>
+
+              </div>
+
+              <div class="flying-ball" id="flying-ball" hidden></div>
+
+            </div>
+
+
+
+            <div class="result-rack">
+
+              <p class="rack-label">당첨 번호</p>
+
+              <div class="result-slots" id="result-slots"></div>
+
+            </div>
+
+
+
+            <div class="bonus-area" id="bonus-area" hidden>
+
+              <p class="rack-label">보너스 번호</p>
+
+              <div class="bonus-slot" id="bonus-slot"></div>
+
+            </div>
+
+          </div>
+
+
+
+          <p class="draw-status" id="draw-status">추첨기가 준비되었습니다</p>
+
+        </section>
+
+
+
+        <section class="controls">
+
+          <div class="control-row">
+
+            <label class="control-label" for="set-count">추첨 세트</label>
+
+            <select id="set-count" class="select">
+
+              <option value="1" selected>1세트</option>
+
+              <option value="3">3세트</option>
+
+              <option value="5">5세트</option>
+
+              <option value="10">10세트</option>
+
+            </select>
+
+          </div>
+
+
+
+          <label class="checkbox-label">
+
+            <input type="checkbox" id="include-bonus">
+
+            보너스 번호 포함
+
+          </label>
+
+
+
+          <button type="button" class="btn-primary" id="draw-btn" disabled>
+
+            번호 추첨하기
+
+          </button>
+
+        </section>
+
+      </div>
+
+
+
+      <div class="tab-panel" id="tab-ai" role="tabpanel" hidden>
+
+        <section class="chatbot" id="chatbot">
+
+          <div class="chatbot-header">
+
+            <h2>🔮 AI 로또 상담</h2>
+
+            <p>생년월일·오늘 운세·사주팔자를 바탕으로 번호를 추천합니다</p>
+
+          </div>
+
+
+
+          <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+
+
+
+          <div class="chat-input-area">
+
+            <input
+
+              type="text"
+
+              id="chat-input"
+
+              class="input"
+
+              placeholder="추가로 궁금한 점을 입력하세요 (선택)"
+
+              maxlength="500"
+
+            >
+
+            <button type="button" class="btn-chat" id="chat-recommend-btn">
+
+              운세 기반 번호 추천
+
+            </button>
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+
+      <div class="tab-panel" id="tab-history" role="tabpanel" hidden>
+
+        <section class="history" id="history-section">
+
+          <h2>추첨 기록</h2>
+
+          <p class="history-empty" id="history-empty">아직 추첨 기록이 없습니다.</p>
+
+          <ul class="history-list" id="history-list"></ul>
+
+          <button type="button" class="btn-secondary" id="clear-history" hidden>기록 지우기</button>
+
+        </section>
+
+      </div>
+
+
+
+      <div class="tab-panel" id="tab-reviews" role="tabpanel" hidden>
+
+        <section class="testimonials">
+
+          <h2>⭐ 당첨자 후기</h2>
+
+          <p class="testimonials-sub">AI 추천 번호로 행운을 잡은 분들의 이야기</p>
+
+          <ul class="testimonial-list">
+
+            <li class="testimonial-card">
+
+              <div class="testimonial-top">
+
+                <span class="testimonial-name">김민준</span>
+
+                <span class="testimonial-badge">1등 당첨</span>
+
+              </div>
+
+              <p class="testimonial-text">생년월일과 사주 기반 AI 추천 번호로 1218회 1등에 당첨됐어요! 추천 이유가 상세해서 믿고 구매했는데 정말 됐습니다.</p>
+
+              <span class="testimonial-meta">서울 · 2026년 4월</span>
+
+            </li>
+
+            <li class="testimonial-card">
+
+              <div class="testimonial-top">
+
+                <span class="testimonial-name">이서연</span>
+
+                <span class="testimonial-badge">1등 당첨</span>
+
+              </div>
+
+              <p class="testimonial-text">운세 기반 번호 추천을 써보고 반신반의했는데 3주 만에 1등 당첨! 번호마다 왜 골랐는지 설명해 줘서 더 신뢰가 갔어요.</p>
+
+              <span class="testimonial-meta">부산 · 2026년 3월</span>
+
+            </li>
+
+            <li class="testimonial-card">
+
+              <div class="testimonial-top">
+
+                <span class="testimonial-name">박지훈</span>
+
+                <span class="testimonial-badge">1등 당첨</span>
+
+              </div>
+
+              <p class="testimonial-text">매주 AI가 보내주는 맞춤 번호로 꾸준히 샀더니 드디어 1등! 사주팔자랑 오늘 운세를 반영한 게 확실히 다르더라고요.</p>
+
+              <span class="testimonial-meta">대구 · 2026년 2월</span>
+
+            </li>
+
+            <li class="testimonial-card">
+
+              <div class="testimonial-top">
+
+                <span class="testimonial-name">최유나</span>
+
+                <span class="testimonial-badge">1등 당첨</span>
+
+              </div>
+
+              <p class="testimonial-text">친구 추천으로 가입했는데 AI가 추천한 번호 그대로 1등 당첨됐습니다. 이제 우리 가족도 전부 이 서비스 쓰고 있어요!</p>
+
+              <span class="testimonial-meta">인천 · 2026년 1월</span>
+
+            </li>
+
+          </ul>
+
+        </section>
+
+      </div>
+
+
+
+      <div class="tab-panel" id="tab-winners" role="tabpanel" hidden>
+
+        <section class="winners">
+
+          <div class="winners-header">
+
+            <h2>역대 1등 당첨번호</h2>
+
+            <span class="winners-count" id="winners-count"></span>
+
+          </div>
+
+
+
+          <div class="winners-filters">
+
+            <div class="filter-group">
+
+              <label class="control-label" for="draw-search">회차 검색</label>
+
+              <input type="number" id="draw-search" class="input" min="1" placeholder="예: 1227">
+
+            </div>
+
+            <div class="filter-group">
+
+              <label class="control-label" for="number-filter">번호 포함</label>
+
+              <input type="number" id="number-filter" class="input" min="1" max="45" placeholder="1~45">
+
+            </div>
+
+          </div>
+
+
+
+          <ul class="winners-list" id="winners-list"></ul>
+
+
+
+          <div class="pagination" id="pagination">
+
+            <button type="button" class="btn-page" id="prev-page" disabled>이전</button>
+
+            <span class="page-info" id="page-info"></span>
+
+            <button type="button" class="btn-page" id="next-page">다음</button>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+
+
+    <footer class="footer">
+
+      <p>※ 본 추첨기는 오락용이며, 당첨을 보장하지 않습니다. 후기는 서비스 소개용 예시입니다.</p>
+
+    </footer>
+
+  </div>
+
+
+
+  <div class="modal-overlay" id="signup-modal" hidden>
+
+    <div class="modal" role="dialog" aria-labelledby="signup-title" aria-modal="true">
+
+      <button type="button" class="modal-close" id="signup-close" aria-label="닫기">×</button>
+
+      <div class="modal-icon">🎉</div>
+
+      <h2 class="modal-title" id="signup-title">AI 로또 번호 추천 서비스</h2>
+
+      <p class="modal-desc">
+
+        앞으로 <strong>AI가 생년월일·운세·사주</strong>를 분석해<br>
+
+        매주 맞춤 로또 번호를 추천해 드립니다.<br>
+
+        지금 무료로 가입해 보세요!
+
+      </p>
+
+
+
+      <form class="signup-form" id="signup-form">
+
+        <div class="signup-field">
+
+          <label class="control-label" for="signup-name">이름</label>
+
+          <input type="text" id="signup-name" class="input" placeholder="홍길동" required maxlength="20">
+
+        </div>
+
+        <div class="signup-field">
+
+          <label class="control-label" for="signup-phone">전화번호</label>
+
+          <input type="tel" id="signup-phone" class="input" placeholder="01012345678" required maxlength="13">
+
+        </div>
+
+        <div class="signup-field">
+
+          <label class="control-label" for="signup-email">이메일</label>
+
+          <input type="email" id="signup-email" class="input" placeholder="example@email.com" required maxlength="60">
+
+        </div>
+
+        <button type="submit" class="btn-primary btn-signup">무료 가입하기</button>
+
+      </form>
+
+
+
+      <div class="signup-success" id="signup-success" hidden>
+
+        <p></p>
+
+      </div>
+
+
+
+      <button type="button" class="modal-skip" id="signup-skip">나중에 하기</button>
+
+    </div>
+
+  </div>
+
+
+
+  <script src="lotto-data.js"></script>
+
+  <script src="tabs.js"></script>
+
+  <script src="signup.js"></script>
+
+  <script src="app.js"></script>
+
+  <script src="chatbot.js"></script>
+
+</body>
+
+</html>
+
+

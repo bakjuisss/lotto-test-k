@@ -377,7 +377,7 @@ async function drawOnce(birthdate, showAnimation = true) {
   return { numbers, bonus };
 }
 
-async function handleDraw() {
+async function performDraw() {
   if (isDrawing) return;
 
   const birthdate = updateBirthdateState();
@@ -400,12 +400,20 @@ async function handleDraw() {
   isDrawing = false;
   drawBtn.textContent = "번호 추첨하기";
   updateBirthdateState();
+}
 
-  setTimeout(() => {
-    if (typeof window.showSignupModal === "function") {
-      window.showSignupModal();
-    }
-  }, 800);
+function handleDraw() {
+  if (isDrawing) return;
+
+  const birthdate = updateBirthdateState();
+  if (!birthdate) return;
+
+  if (typeof window.requireSignup === "function") {
+    window.requireSignup(performDraw);
+    return;
+  }
+
+  performDraw();
 }
 
 drawBtn.addEventListener("click", handleDraw);

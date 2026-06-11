@@ -104,7 +104,7 @@ function showRecommendedNumbers(numbers, bonus) {
   drawStatusEl.textContent = "AI 추천 번호가 적용되었습니다.";
 }
 
-async function requestRecommendation() {
+function requestRecommendation() {
   if (isChatLoading) return;
 
   const cooldownLeft = getCooldownRemainingMs();
@@ -123,6 +123,20 @@ async function requestRecommendation() {
     addChatMessage("bot", "<p>먼저 생년월일을 올바르게 입력해 주세요.</p>", "error");
     return;
   }
+
+  if (typeof window.requireSignup === "function") {
+    window.requireSignup(runRecommendation);
+    return;
+  }
+
+  runRecommendation();
+}
+
+async function runRecommendation() {
+  if (isChatLoading) return;
+
+  const birthdate = typeof updateBirthdateState === "function" ? updateBirthdateState() : null;
+  if (!birthdate) return;
 
   const message = chatInputEl.value.trim();
   if (message) {
@@ -189,11 +203,6 @@ async function requestRecommendation() {
       });
     }
 
-    setTimeout(() => {
-      if (typeof window.showSignupModal === "function") {
-        window.showSignupModal();
-      }
-    }, 1200);
   } catch {
     loadingEl.remove();
     addChatMessage(
