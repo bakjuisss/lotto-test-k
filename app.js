@@ -1,7 +1,8 @@
 const MIN = 1;
 const MAX = 45;
 const COUNT = 6;
-const DRUM_SHAKE_MS = 650;
+const DRUM_SHAKE_MS = 820;
+const DRUM_BALL_COUNT = 26;
 
 const drumEl = document.getElementById("drum");
 const drumInnerEl = document.getElementById("drum-inner");
@@ -177,20 +178,56 @@ function updateBirthdateState() {
   return result.birthdate;
 }
 
+function randomDrumNumber() {
+  return MIN + Math.floor(Math.random() * (MAX - MIN + 1));
+}
+
+function placeBallInDrum(ball) {
+  const angle = Math.random() * Math.PI * 2;
+  const radius = 18 + Math.random() * 32;
+  const x = 50 + Math.cos(angle) * radius * 0.38;
+  const y = 50 + Math.sin(angle) * radius * 0.38;
+  const tx = (2 + Math.random() * 7).toFixed(1);
+  const ty = (2 + Math.random() * 7).toFixed(1);
+  const rot = (4 + Math.random() * 14).toFixed(1);
+  const depth = (0.82 + Math.random() * 0.28).toFixed(2);
+
+  ball.style.left = `${x}%`;
+  ball.style.top = `${y}%`;
+  ball.style.setProperty("--tx", `${tx}px`);
+  ball.style.setProperty("--ty", `${ty}px`);
+  ball.style.setProperty("--rot", `${rot}deg`);
+  ball.style.setProperty("--depth", depth);
+  ball.style.setProperty("--dur", `${2.2 + Math.random() * 2.4}s`);
+  ball.style.setProperty("--delay", `${Math.random() * 2.5}s`);
+}
+
 function initDrumBalls() {
   drumInnerEl.innerHTML = "";
-  for (let i = MIN; i <= MAX; i++) {
-    const ball = createBall(i, "drum-ball", "tiny");
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 28 + Math.random() * 42;
-    const x = 50 + Math.cos(angle) * radius * 0.35;
-    const y = 50 + Math.sin(angle) * radius * 0.35;
-    ball.style.left = `${x}%`;
-    ball.style.top = `${y}%`;
-    ball.style.animationDelay = `${Math.random() * 2}s`;
-    ball.style.animationDuration = `${1.8 + Math.random() * 1.4}s`;
+  const used = new Set();
+
+  for (let i = 0; i < DRUM_BALL_COUNT; i++) {
+    let num = randomDrumNumber();
+    while (used.size < MAX && used.has(num)) {
+      num = randomDrumNumber();
+    }
+    used.add(num);
+
+    const ball = createBall(num, "drum-ball", "tiny");
+    placeBallInDrum(ball);
     drumInnerEl.appendChild(ball);
   }
+}
+
+function setDrumTumble(active) {
+  drumInnerEl.classList.toggle("tumbling", active);
+  drumEl.classList.toggle("active-draw", active);
+}
+
+function scatterDrumBalls() {
+  drumInnerEl.querySelectorAll(".drum-ball").forEach((ball) => {
+    placeBallInDrum(ball);
+  });
 }
 
 function initResultSlots() {
@@ -211,7 +248,8 @@ function resetMachine() {
   bonusSlotEl.innerHTML = "";
   flyingBallEl.hidden = true;
   flyingBallEl.className = "flying-ball";
-  drumEl.classList.remove("shaking", "spinning");
+  drumEl.classList.remove("shaking", "spinning", "active-draw");
+  drumInnerEl.classList.remove("tumbling");
 }
 
 function getRelativeCenter(el, container) {
@@ -227,16 +265,18 @@ async function ejectBall(num, targetSlot, size = "normal") {
   const stage = document.querySelector(".machine-stage");
   const chuteExit = document.querySelector(".chute-exit");
 
+  setDrumTumble(true);
   drumEl.classList.add("shaking");
+  scatterDrumBalls();
   await delay(DRUM_SHAKE_MS);
   drumEl.classList.remove("shaking");
-  drumEl.classList.add("spinning");
-  await delay(200);
-  drumEl.classList.remove("spinning");
+  await delay(120);
+  setDrumTumble(false);
 
   const start = getRelativeCenter(chuteExit, stage);
   const end = getRelativeCenter(targetSlot, stage);
   const ballSize = size === "bonus" ? 40 : 52;
+  const spring = "cubic-bezier(0.32, 0.72, 0, 1)";
 
   flyingBallEl.textContent = num;
   flyingBallEl.className = `flying-ball ball ${size} ${getBallColor(num)}`;
@@ -246,21 +286,25 @@ async function ejectBall(num, targetSlot, size = "normal") {
   flyingBallEl.style.fontSize = size === "bonus" ? "1rem" : "1.25rem";
   flyingBallEl.style.left = `${start.x - ballSize / 2}px`;
   flyingBallEl.style.top = `${start.y - ballSize / 2}px`;
-  flyingBallEl.style.transform = "scale(0.3)";
+  flyingBallEl.style.transform = "scale(0.35) translateY(8px)";
   flyingBallEl.style.opacity = "0";
+  flyingBallEl.style.filter = "blur(2px)";
 
-  await delay(50);
+  await delay(40);
 
-  flyingBallEl.style.transition = "left 0.55s cubic-bezier(0.4, 0, 0.2, 1), top 0.55s cubic-bezier(0.4, 0, 0.2, 1), transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s";
-  flyingBallEl.style.transform = "scale(1)";
+  flyingBallEl.style.transition =
+    `left 0.62s ${spring}, top 0.62s ${spring}, transform 0.62s ${spring}, opacity 0.28s ease, filter 0.45s ease`;
+  flyingBallEl.style.transform = "scale(1) translateY(0)";
   flyingBallEl.style.opacity = "1";
+  flyingBallEl.style.filter = "blur(0)";
   flyingBallEl.style.left = `${end.x - ballSize / 2}px`;
   flyingBallEl.style.top = `${end.y - ballSize / 2}px`;
 
-  await delay(580);
+  await delay(640);
 
   flyingBallEl.hidden = true;
   flyingBallEl.style.transition = "";
+  flyingBallEl.style.filter = "";
   targetSlot.innerHTML = "";
   targetSlot.appendChild(createBall(num, "landed", size));
   targetSlot.classList.add("filled");
@@ -269,12 +313,18 @@ async function ejectBall(num, targetSlot, size = "normal") {
 async function machineDraw(numbers, bonus, birthdate) {
   resetMachine();
   drawStatusEl.textContent = `${formatBirthdate(birthdate)}생 님, 추첨기 가동 중...`;
-  await delay(300);
+  setDrumTumble(true);
+  drumEl.classList.add("active-draw");
+  scatterDrumBalls();
+  await delay(420);
 
   for (let i = 0; i < numbers.length; i++) {
     drawStatusEl.textContent = `${i + 1}번째 공을 꺼내는 중...`;
     await ejectBall(numbers[i], slotElements[i]);
-    await delay(180);
+    if (i < numbers.length - 1) {
+      setDrumTumble(true);
+      await delay(160);
+    }
   }
 
   if (bonus !== null) {
@@ -284,6 +334,8 @@ async function machineDraw(numbers, bonus, birthdate) {
     await ejectBall(bonus, bonusSlotEl, "bonus");
   }
 
+  setDrumTumble(false);
+  drumEl.classList.remove("active-draw");
   drawStatusEl.textContent = "추첨이 완료되었습니다!";
 }
 
