@@ -111,6 +111,24 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.header-card {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+}
+
+.trump-card {
+  width: 72px;
+  height: auto;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.1));
+  transform: rotate(-4deg);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.header:hover .trump-card {
+  transform: rotate(2deg) translateY(-2px);
+}
+
 .header h1 {
   font-size: 1.85rem;
   font-weight: 700;
