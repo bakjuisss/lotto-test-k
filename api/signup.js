@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
         apikey: supabaseKey,
         Authorization: `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
-        Prefer: "return=representation",
+        Prefer: "return=minimal",
       },
       body: JSON.stringify({
         name: validName,

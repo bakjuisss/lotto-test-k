@@ -1,5 +1,9 @@
--- 정책 중복 오류(42710)가 났을 때만 이 파일을 실행하세요.
--- 또는 schema.sql 전체 대신 이 파일만 실행해도 됩니다.
+-- 권한 오류(42501 / RLS)가 날 때 Supabase SQL Editor에서 실행하세요.
+
+grant usage on schema public to anon, authenticated;
+grant insert on table public.signups to anon, authenticated;
+
+alter table public.signups enable row level security;
 
 drop policy if exists "Allow anonymous insert" on public.signups;
 

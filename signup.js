@@ -109,7 +109,7 @@ function parseSupabaseError(status, data, rawText) {
   }
 
   if (/row-level security|RLS|42501|permission denied/i.test(message)) {
-    return "Supabase 권한 오류입니다. schema.sql의 insert 정책을 적용했는지 확인해 주세요.";
+    return "Supabase 권한 오류입니다. Supabase SQL Editor에서 supabase/fix-policy.sql을 실행해 주세요.";
   }
 
   if (status === 409 || /duplicate|unique|23505/i.test(message)) {
@@ -148,7 +148,7 @@ async function saveSignupViaSupabase(signupData, config) {
         apikey: config.anonKey,
         Authorization: `Bearer ${config.anonKey}`,
         "Content-Type": "application/json",
-        Prefer: "return=representation",
+        Prefer: "return=minimal",
       },
       body: JSON.stringify({
         name: signupData.name,

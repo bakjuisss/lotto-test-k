@@ -14,22 +14,15 @@ create table if not exists public.signups (
 create unique index if not exists signups_phone_unique on public.signups (phone);
 create unique index if not exists signups_email_unique on public.signups (email);
 
--- 3) RLS 활성화
+-- 3) anon/authenticated 역할에 테이블 권한 부여 (RLS와 별도로 필요)
+grant usage on schema public to anon, authenticated;
+grant insert on table public.signups to anon, authenticated;
+
+-- 4) RLS 활성화
 alter table public.signups enable row level security;
 
--- 4) insert 정책 (기존 정책이 있으면 삭제 후 재생성)
-do $$
-begin
-  if exists (
-    select 1
-    from pg_policies
-    where schemaname = 'public'
-      and tablename = 'signups'
-      and policyname = 'Allow anonymous insert'
-  ) then
-    drop policy "Allow anonymous insert" on public.signups;
-  end if;
-end $$;
+-- 5) insert 정책 (기존 정책이 있으면 삭제 후 재생성)
+drop policy if exists "Allow anonymous insert" on public.signups;
 
 create policy "Allow anonymous insert"
   on public.signups
