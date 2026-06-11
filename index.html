@@ -101,6 +101,45 @@
         </div>
       </section>
 
+      <section class="testimonials">
+        <h2>⭐ 당첨자 후기</h2>
+        <p class="testimonials-sub">AI 추천 번호로 행운을 잡은 분들의 이야기</p>
+        <ul class="testimonial-list">
+          <li class="testimonial-card">
+            <div class="testimonial-top">
+              <span class="testimonial-name">김민준</span>
+              <span class="testimonial-badge">1등 당첨</span>
+            </div>
+            <p class="testimonial-text">생년월일과 사주 기반 AI 추천 번호로 1218회 1등에 당첨됐어요! 추천 이유가 상세해서 믿고 구매했는데 정말 됐습니다.</p>
+            <span class="testimonial-meta">서울 · 2026년 4월</span>
+          </li>
+          <li class="testimonial-card">
+            <div class="testimonial-top">
+              <span class="testimonial-name">이서연</span>
+              <span class="testimonial-badge">1등 당첨</span>
+            </div>
+            <p class="testimonial-text">운세 기반 번호 추천을 써보고 반신반의했는데 3주 만에 1등 당첨! 번호마다 왜 골랐는지 설명해 줘서 더 신뢰가 갔어요.</p>
+            <span class="testimonial-meta">부산 · 2026년 3월</span>
+          </li>
+          <li class="testimonial-card">
+            <div class="testimonial-top">
+              <span class="testimonial-name">박지훈</span>
+              <span class="testimonial-badge">1등 당첨</span>
+            </div>
+            <p class="testimonial-text">매주 AI가 보내주는 맞춤 번호로 꾸준히 샀더니 드디어 1등! 사주팔자랑 오늘 운세를 반영한 게 확실히 다르더라고요.</p>
+            <span class="testimonial-meta">대구 · 2026년 2월</span>
+          </li>
+          <li class="testimonial-card">
+            <div class="testimonial-top">
+              <span class="testimonial-name">최유나</span>
+              <span class="testimonial-badge">1등 당첨</span>
+            </div>
+            <p class="testimonial-text">친구 추천으로 가입했는데 AI가 추천한 번호 그대로 1등 당첨됐습니다. 이제 우리 가족도 전부 이 서비스 쓰고 있어요!</p>
+            <span class="testimonial-meta">인천 · 2026년 1월</span>
+          </li>
+        </ul>
+      </section>
+
       <section class="history" id="history-section" hidden>
         <h2>추첨 기록</h2>
         <ul class="history-list" id="history-list"></ul>
@@ -135,12 +174,48 @@
     </main>
 
     <footer class="footer">
-      <p>※ 본 추첨기는 오락용이며, 당첨을 보장하지 않습니다.</p>
+      <p>※ 본 추첨기는 오락용이며, 당첨을 보장하지 않습니다. 후기는 서비스 소개용 예시입니다.</p>
     </footer>
+  </div>
+
+  <div class="modal-overlay" id="signup-modal" hidden>
+    <div class="modal" role="dialog" aria-labelledby="signup-title" aria-modal="true">
+      <button type="button" class="modal-close" id="signup-close" aria-label="닫기">×</button>
+      <div class="modal-icon">🎉</div>
+      <h2 class="modal-title" id="signup-title">AI 로또 번호 추천 서비스</h2>
+      <p class="modal-desc">
+        앞으로 <strong>AI가 생년월일·운세·사주</strong>를 분석해<br>
+        매주 맞춤 로또 번호를 추천해 드립니다.<br>
+        지금 무료로 가입해 보세요!
+      </p>
+
+      <form class="signup-form" id="signup-form">
+        <div class="signup-field">
+          <label class="control-label" for="signup-name">이름</label>
+          <input type="text" id="signup-name" class="input" placeholder="홍길동" required maxlength="20">
+        </div>
+        <div class="signup-field">
+          <label class="control-label" for="signup-phone">전화번호</label>
+          <input type="tel" id="signup-phone" class="input" placeholder="01012345678" required maxlength="13">
+        </div>
+        <div class="signup-field">
+          <label class="control-label" for="signup-email">이메일</label>
+          <input type="email" id="signup-email" class="input" placeholder="example@email.com" required maxlength="60">
+        </div>
+        <button type="submit" class="btn-primary btn-signup">무료 가입하기</button>
+      </form>
+
+      <div class="signup-success" id="signup-success" hidden>
+        <p></p>
+      </div>
+
+      <button type="button" class="modal-skip" id="signup-skip">나중에 하기</button>
+    </div>
   </div>
 
   <script src="lotto-data.js"></script>
   <script src="app.js"></script>
+  <script src="signup.js"></script>
   <script src="chatbot.js"></script>
 </body>
 </html>

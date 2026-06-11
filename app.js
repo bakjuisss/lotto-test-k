@@ -390,6 +390,12 @@ async function handleDraw() {
   isDrawing = false;
   drawBtn.textContent = "번호 추첨하기";
   updateBirthdateState();
+
+  setTimeout(() => {
+    if (typeof window.showSignupModal === "function") {
+      window.showSignupModal();
+    }
+  }, 800);
 }
 
 drawBtn.addEventListener("click", handleDraw);

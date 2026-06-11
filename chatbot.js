@@ -188,6 +188,12 @@ async function requestRecommendation() {
         applyBtn.disabled = true;
       });
     }
+
+    setTimeout(() => {
+      if (typeof window.showSignupModal === "function") {
+        window.showSignupModal();
+      }
+    }, 1200);
   } catch {
     loadingEl.remove();
     addChatMessage(
