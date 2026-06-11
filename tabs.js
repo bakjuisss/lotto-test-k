@@ -3,7 +3,7 @@ const tabButtons = tabNav ? [...tabNav.querySelectorAll(".tab-btn")] : [];
 const tabPanels = [...document.querySelectorAll(".tab-panel")];
 
 const TAB_SUBTITLES = {
-  draw: "추첨기에서 공을 하나씩 꺼내 번호를 뽑습니다",
+  draw: "20대 청년이 추첨기를 때려 공을 하나씩 꺼냅니다",
   ai: "생년월일·운세·사주팔자로 AI 번호를 추천받으세요",
   history: "지금까지 추첨한 번호 기록을 확인합니다",
   reviews: "AI 추천으로 당첨한 분들의 후기입니다",

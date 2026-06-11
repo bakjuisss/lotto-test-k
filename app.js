@@ -1,10 +1,12 @@
 const MIN = 1;
 const MAX = 45;
 const COUNT = 6;
-const DRUM_SHAKE_MS = 820;
+const KICK_ANIM_MS = 560;
 const DRUM_BALL_COUNT = 26;
 
 const drumEl = document.getElementById("drum");
+const puncherEl = document.getElementById("puncher");
+const puncherImpactEl = document.getElementById("puncher-impact");
 const drumInnerEl = document.getElementById("drum-inner");
 const flyingBallEl = document.getElementById("flying-ball");
 const resultSlotsEl = document.getElementById("result-slots");
@@ -248,8 +250,41 @@ function resetMachine() {
   bonusSlotEl.innerHTML = "";
   flyingBallEl.hidden = true;
   flyingBallEl.className = "flying-ball";
-  drumEl.classList.remove("shaking", "spinning", "active-draw");
+  drumEl.classList.remove("shaking", "spinning", "active-draw", "hit-impact");
   drumInnerEl.classList.remove("tumbling");
+  puncherEl?.classList.remove("kicking");
+  puncherImpactEl?.classList.remove("show");
+}
+
+async function playKickAnimation() {
+  if (!puncherEl) {
+    drumEl.classList.add("shaking");
+    setDrumTumble(true);
+    scatterDrumBalls();
+    await delay(KICK_ANIM_MS);
+    drumEl.classList.remove("shaking");
+    setDrumTumble(false);
+    return;
+  }
+
+  puncherEl.classList.remove("kicking");
+  puncherImpactEl?.classList.remove("show");
+  void puncherEl.offsetWidth;
+
+  setDrumTumble(true);
+  scatterDrumBalls();
+  puncherEl.classList.add("kicking");
+  drumEl.classList.add("hit-impact");
+
+  await delay(180);
+  puncherImpactEl?.classList.add("show");
+
+  await delay(KICK_ANIM_MS - 180);
+
+  puncherEl.classList.remove("kicking");
+  drumEl.classList.remove("hit-impact", "shaking");
+  await delay(140);
+  setDrumTumble(false);
 }
 
 function getRelativeCenter(el, container) {
@@ -265,13 +300,7 @@ async function ejectBall(num, targetSlot, size = "normal") {
   const stage = document.querySelector(".machine-stage");
   const chuteExit = document.querySelector(".chute-exit");
 
-  setDrumTumble(true);
-  drumEl.classList.add("shaking");
-  scatterDrumBalls();
-  await delay(DRUM_SHAKE_MS);
-  drumEl.classList.remove("shaking");
-  await delay(120);
-  setDrumTumble(false);
+  await playKickAnimation();
 
   const start = getRelativeCenter(chuteExit, stage);
   const end = getRelativeCenter(targetSlot, stage);
@@ -312,19 +341,16 @@ async function ejectBall(num, targetSlot, size = "normal") {
 
 async function machineDraw(numbers, bonus, birthdate) {
   resetMachine();
-  drawStatusEl.textContent = `${formatBirthdate(birthdate)}생 님, 추첨기 가동 중...`;
-  setDrumTumble(true);
+  drawStatusEl.textContent = `${formatBirthdate(birthdate)}생 님, 추첨기를 때릴 준비 중...`;
   drumEl.classList.add("active-draw");
-  scatterDrumBalls();
-  await delay(420);
+  await playKickAnimation();
+  drawStatusEl.textContent = "공이 튀어나옵니다!";
+  await delay(200);
 
   for (let i = 0; i < numbers.length; i++) {
-    drawStatusEl.textContent = `${i + 1}번째 공을 꺼내는 중...`;
+    drawStatusEl.textContent = `${i + 1}번째 공 — 찰싹! 때리는 중...`;
     await ejectBall(numbers[i], slotElements[i]);
-    if (i < numbers.length - 1) {
-      setDrumTumble(true);
-      await delay(160);
-    }
+    if (i < numbers.length - 1) await delay(160);
   }
 
   if (bonus !== null) {
