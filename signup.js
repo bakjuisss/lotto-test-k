@@ -6,6 +6,7 @@ const signupForm = document.getElementById("signup-form");
 const signupCloseBtn = document.getElementById("signup-close");
 const signupSkipBtn = document.getElementById("signup-skip");
 const signupSuccessEl = document.getElementById("signup-success");
+const signupSubmitBtn = signupForm.querySelector(".btn-signup");
 
 function isSignupCompleted() {
   return localStorage.getItem(SIGNUP_KEY) === "true";
@@ -42,7 +43,32 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-signupForm.addEventListener("submit", (e) => {
+function setSubmitting(isSubmitting) {
+  signupSubmitBtn.disabled = isSubmitting;
+  signupSubmitBtn.textContent = isSubmitting ? "저장 중..." : "무료 가입하기";
+}
+
+async function saveSignupToSupabase(signupData) {
+  const res = await fetch("/api/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: signupData.name,
+      phone: signupData.phone,
+      email: signupData.email,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data.error || "가입 정보 저장에 실패했습니다.");
+  }
+
+  return data;
+}
+
+signupForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const name = signupForm.querySelector("#signup-name").value.trim();
@@ -71,16 +97,30 @@ signupForm.addEventListener("submit", (e) => {
     joinedAt: new Date().toISOString(),
   };
 
-  localStorage.setItem(SIGNUP_KEY, "true");
-  localStorage.setItem("lotto_ai_signup_data", JSON.stringify(signupData));
-  localStorage.removeItem(SIGNUP_SKIP_KEY);
+  setSubmitting(true);
 
-  signupForm.hidden = true;
-  signupSuccessEl.hidden = false;
-  signupSuccessEl.querySelector("p").textContent =
-    `${name}님, 가입이 완료되었습니다! 매주 AI 맞춤 번호를 보내 드릴게요.`;
+  try {
+    const result = await saveSignupToSupabase(signupData);
 
-  setTimeout(closeSignupModal, 2200);
+    if (result.joinedAt) {
+      signupData.joinedAt = result.joinedAt;
+    }
+
+    localStorage.setItem(SIGNUP_KEY, "true");
+    localStorage.setItem("lotto_ai_signup_data", JSON.stringify(signupData));
+    localStorage.removeItem(SIGNUP_SKIP_KEY);
+
+    signupForm.hidden = true;
+    signupSuccessEl.hidden = false;
+    signupSuccessEl.querySelector("p").textContent =
+      `${name}님, 가입이 완료되었습니다! 매주 AI 맞춤 번호를 보내 드릴게요.`;
+
+    setTimeout(closeSignupModal, 2200);
+  } catch (err) {
+    alert(err.message || "가입 정보 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+  } finally {
+    setSubmitting(false);
+  }
 });
 
 signupCloseBtn.addEventListener("click", () => {

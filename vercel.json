@@ -7,6 +7,9 @@
   "functions": {
     "api/recommend.js": {
       "maxDuration": 30
+    },
+    "api/signup.js": {
+      "maxDuration": 10
     }
   }
 }
