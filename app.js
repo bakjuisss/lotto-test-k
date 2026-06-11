@@ -11,6 +11,9 @@ const bonusAreaEl = document.getElementById("bonus-area");
 const bonusSlotEl = document.getElementById("bonus-slot");
 const drawStatusEl = document.getElementById("draw-status");
 const drawBtn = document.getElementById("draw-btn");
+const birthdateEl = document.getElementById("birthdate");
+const birthdateHintEl = document.getElementById("birthdate-hint");
+const birthdateErrorEl = document.getElementById("birthdate-error");
 const setCountEl = document.getElementById("set-count");
 const includeBonusEl = document.getElementById("include-bonus");
 const historySection = document.getElementById("history-section");
@@ -72,6 +75,64 @@ function formatPrize(amount, winners) {
 function formatNumbers(numbers, bonus) {
   const main = numbers.join(", ");
   return bonus !== null ? `${main} + ${bonus}` : main;
+}
+
+function formatBirthdate(dateStr) {
+  const [y, m, d] = dateStr.split("-");
+  return `${y}년 ${parseInt(m, 10)}월 ${parseInt(d, 10)}일`;
+}
+
+function validateBirthdate() {
+  const value = birthdateEl.value;
+
+  if (!value) {
+    return { valid: false, message: "생년월일을 입력해 주세요.", birthdate: null };
+  }
+
+  const birth = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(birth.getTime())) {
+    return { valid: false, message: "올바른 날짜를 입력해 주세요.", birthdate: null };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (birth > today) {
+    return { valid: false, message: "오늘 이후 날짜는 입력할 수 없습니다.", birthdate: null };
+  }
+
+  const minDate = new Date("1900-01-01T00:00:00");
+  if (birth < minDate) {
+    return { valid: false, message: "1900년 1월 1일 이후 날짜만 입력할 수 있습니다.", birthdate: null };
+  }
+
+  return { valid: true, message: "", birthdate: value };
+}
+
+function updateBirthdateState() {
+  const result = validateBirthdate();
+
+  if (!birthdateEl.value) {
+    birthdateHintEl.textContent = "추첨 전 생년월일을 입력해 주세요.";
+    birthdateHintEl.classList.remove("valid");
+    birthdateErrorEl.hidden = true;
+    drawBtn.disabled = true;
+    return null;
+  }
+
+  if (!result.valid) {
+    birthdateHintEl.textContent = "";
+    birthdateErrorEl.textContent = result.message;
+    birthdateErrorEl.hidden = false;
+    drawBtn.disabled = true;
+    return null;
+  }
+
+  birthdateErrorEl.hidden = true;
+  birthdateHintEl.textContent = `${formatBirthdate(result.birthdate)}생 · 추첨 가능`;
+  birthdateHintEl.classList.add("valid");
+  drawBtn.disabled = isDrawing;
+  return result.birthdate;
 }
 
 function initDrumBalls() {
@@ -163,9 +224,9 @@ async function ejectBall(num, targetSlot, size = "normal") {
   targetSlot.classList.add("filled");
 }
 
-async function machineDraw(numbers, bonus) {
+async function machineDraw(numbers, bonus, birthdate) {
   resetMachine();
-  drawStatusEl.textContent = "추첨기 가동 중...";
+  drawStatusEl.textContent = `${formatBirthdate(birthdate)}생 님, 추첨기 가동 중...`;
   await delay(300);
 
   for (let i = 0; i < numbers.length; i++) {
@@ -184,7 +245,7 @@ async function machineDraw(numbers, bonus) {
   drawStatusEl.textContent = "추첨이 완료되었습니다!";
 }
 
-function addHistoryEntry(numbers, bonus) {
+function addHistoryEntry(numbers, bonus, birthdate) {
   historySection.hidden = false;
 
   const li = document.createElement("li");
@@ -202,6 +263,10 @@ function addHistoryEntry(numbers, bonus) {
     ballsWrap.appendChild(createBall(bonus, "", "small"));
   }
 
+  const birthMeta = document.createElement("span");
+  birthMeta.className = "history-birthdate";
+  birthMeta.textContent = `${formatBirthdate(birthdate)}생`;
+
   const meta = document.createElement("span");
   meta.className = "history-meta";
   meta.textContent = new Date().toLocaleTimeString("ko-KR", {
@@ -218,9 +283,14 @@ function addHistoryEntry(numbers, bonus) {
     setTimeout(() => { copyBtn.textContent = "복사"; }, 1500);
   });
 
+  const info = document.createElement("div");
+  info.className = "history-info";
+  info.appendChild(birthMeta);
+  info.appendChild(meta);
+
   const right = document.createElement("div");
   right.className = "history-right";
-  right.appendChild(meta);
+  right.appendChild(info);
   right.appendChild(copyBtn);
 
   li.appendChild(ballsWrap);
@@ -228,7 +298,7 @@ function addHistoryEntry(numbers, bonus) {
   historyList.prepend(li);
 }
 
-async function drawOnce(showAnimation = true) {
+async function drawOnce(birthdate, showAnimation = true) {
   const numbers = pickUnique(COUNT);
   let bonus = null;
 
@@ -238,7 +308,7 @@ async function drawOnce(showAnimation = true) {
   }
 
   if (showAnimation) {
-    await machineDraw(numbers, bonus);
+    await machineDraw(numbers, bonus, birthdate);
     await delay(300);
   } else {
     resetMachine();
@@ -252,12 +322,16 @@ async function drawOnce(showAnimation = true) {
     }
   }
 
-  addHistoryEntry(numbers, bonus);
+  addHistoryEntry(numbers, bonus, birthdate);
   return { numbers, bonus };
 }
 
 async function handleDraw() {
   if (isDrawing) return;
+
+  const birthdate = updateBirthdateState();
+  if (!birthdate) return;
+
   isDrawing = true;
   drawBtn.disabled = true;
   drawBtn.textContent = "추첨 중...";
@@ -265,7 +339,7 @@ async function handleDraw() {
   const sets = parseInt(setCountEl.value, 10);
 
   for (let i = 0; i < sets; i++) {
-    await drawOnce(i === 0);
+    await drawOnce(birthdate, i === 0);
     if (i < sets - 1) {
       drawStatusEl.textContent = "다음 세트 준비 중...";
       await delay(500);
@@ -273,11 +347,17 @@ async function handleDraw() {
   }
 
   isDrawing = false;
-  drawBtn.disabled = false;
   drawBtn.textContent = "번호 추첨하기";
+  updateBirthdateState();
 }
 
 drawBtn.addEventListener("click", handleDraw);
+birthdateEl.addEventListener("input", updateBirthdateState);
+birthdateEl.addEventListener("change", updateBirthdateState);
+
+const today = new Date().toISOString().slice(0, 10);
+birthdateEl.max = today;
+birthdateEl.min = "1900-01-01";
 
 clearHistoryBtn.addEventListener("click", () => {
   historyList.innerHTML = "";
@@ -286,6 +366,7 @@ clearHistoryBtn.addEventListener("click", () => {
 
 initDrumBalls();
 initResultSlots();
+updateBirthdateState();
 
 // --- 역대 1등 당첨번호 ---
 const winnersListEl = document.getElementById("winners-list");

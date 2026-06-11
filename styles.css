@@ -316,6 +316,31 @@ body {
   box-shadow: var(--shadow);
 }
 
+.birthdate-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.input-date {
+  width: 100%;
+  color-scheme: dark;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.field-hint.valid {
+  color: var(--accent);
+}
+
+.field-error {
+  font-size: 0.8rem;
+  color: #f06b6b;
+}
+
 .control-row {
   display: flex;
   align-items: center;
@@ -423,6 +448,19 @@ body {
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.history-birthdate {
+  font-size: 0.72rem;
+  color: var(--accent);
+  white-space: nowrap;
 }
 
 .history-balls {

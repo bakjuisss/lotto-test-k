@@ -43,6 +43,13 @@
       </section>
 
       <section class="controls">
+        <div class="birthdate-group">
+          <label class="control-label" for="birthdate">생년월일</label>
+          <input type="date" id="birthdate" class="input input-date" required>
+          <p class="field-hint" id="birthdate-hint">추첨 전 생년월일을 입력해 주세요.</p>
+          <p class="field-error" id="birthdate-error" hidden></p>
+        </div>
+
         <div class="control-row">
           <label class="control-label" for="set-count">추첨 세트</label>
           <select id="set-count" class="select">
@@ -58,7 +65,7 @@
           보너스 번호 포함
         </label>
 
-        <button type="button" class="btn-primary" id="draw-btn">
+        <button type="button" class="btn-primary" id="draw-btn" disabled>
           번호 추첨하기
         </button>
       </section>
